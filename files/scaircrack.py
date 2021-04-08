@@ -11,7 +11,7 @@ __author__      = "Gabriel Roch & Cassandre Wojciechowski"
 __copyright__   = "Copyright 2017, HEIG-VD"
 __license__ 	= "GPL"
 __version__ 	= "1.0"
-__email__ 		= "abraham.rubinstein@heig-vd.ch"
+__email__ 		= "abraham.rubinstein@heig-vd.ch, gabriel.roch@heig-vd.ch, cassandre.wojciechowski@heig-vd.ch"
 __status__ 		= "Prototype"
 
 from scapy.all import *
@@ -77,6 +77,8 @@ with open('passphrases.txt') as file :
 
 # For each potential passphrase in the file we calculate the MIC
 for passPhrase in passphrases :
+    print("Passphrase tested     : ", passPhrase)
+
     A           = "Pairwise key expansion" #this string is used in the pseudo-random function
     B           = min(APmac,Clientmac)+max(APmac,Clientmac)+min(ANonce,SNonce)+max(ANonce,SNonce) #used in pseudo-random function
     data        = a2b_hex("0103005f02030a0000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000") #cf "Quelques détails importants" dans la donnée
@@ -96,8 +98,10 @@ for passPhrase in passphrases :
 
     # If the MIC calculated above is the same as the one from the last 4-way handshake message, we found the passphrase
     if current_mic == mic_to_test :
-        print("Passphrase found : ", passPhrase.decode())
+        print("PASSPHRASE FOUND      : ", passPhrase.decode())
         exit(0)
+
+    print("Incorrect passphrase  : ", passPhrase.decode())
 
 print("No passphrase found")
 exit(1)
