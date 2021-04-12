@@ -53,7 +53,6 @@ for packet in wpa :
 # We look for the Authenticator Nonce in the first key exchange packet
 for packet in wpa :
     if (packet.type == 0x2) and (packet.subtype == 0x0) and (packet.proto == 0x0) :
-        #and (APmac == a2b_hex(packet.addr1.replace(":", ""))) and (Clientmac == a2b_hex((packet.addr2).replace(":", ""))) :
         ANonce = packet.load[13:45]
         break
 
@@ -62,12 +61,10 @@ first_packet = True
 # We look for the Supplicant Nonce and the MIC in the following packets
 for packet in wpa :
     if first_packet and (packet.type == 0x0) and (packet.subtype == 0x0) and (packet.proto == 0x1) :
-        #and (APmac == packet.addr1.replace(":", "")) and (Clientmac == (packet.addr2).replace(":", "")) :
         SNonce = Dot11Elt(packet).load[65:97]
         first_packet = False
 
     elif (packet.type == 0x0) and (packet.subtype == 0x0) and (packet.proto == 0x1) :
-        #and (APmac == packet.addr1.replace(":", "")) and (Clientmac == (packet.addr2).replace(":", "")) :
         mic_to_test = Dot11Elt(packet).load[129:-2].hex()
         break
 
