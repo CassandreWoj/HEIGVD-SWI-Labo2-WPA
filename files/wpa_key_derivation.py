@@ -55,7 +55,6 @@ for packet in wpa :
 # We look for the Authenticator Nonce in the first key exchange packet
 for packet in wpa :
     if (packet.type == 0x2) and (packet.subtype == 0x0) and (packet.proto == 0x0) :
-            #and (APmac == a2b_hex(packet.addr1.replace(":", ""))) and (Clientmac == a2b_hex((packet.addr2).replace(":", ""))) :
         ANonce = packet.load[13:45]
         break
 
@@ -64,26 +63,24 @@ first_packet = True
 # We look for the Supplicant Nonce and the MIC in the following packets
 for packet in wpa :
     if first_packet and (packet.type == 0x0) and (packet.subtype == 0x0) and (packet.proto == 0x1) :
-        #and (APmac == packet.addr1.replace(":", "")) and (Clientmac == (packet.addr2).replace(":", "")) :
         SNonce = Dot11Elt(packet).load[65:97]
         first_packet = False
 
     elif (packet.type == 0x0) and (packet.subtype == 0x0) and (packet.proto == 0x1) :
-        #and (APmac == packet.addr1.replace(":", "")) and (Clientmac == (packet.addr2).replace(":", "")) :
         mic_to_test = Dot11Elt(packet).load[129:-2].hex()
         break
 
 # Important parameters for key derivation - most of them can be obtained from the pcap file
 # SSID and MAC addresses of the AP and an STA
-#sid        = "SWI"
-#APmac       = a2b_hex("cebcc8fdcab7")
-#Clientmac   = a2b_hex("0013efd015bd")
+# ssid        = "SWI"
+# APmac       = a2b_hex("cebcc8fdcab7")
+# Clientmac   = a2b_hex("0013efd015bd")
 # Authenticator and Supplicant Nonces
-#ANonce      = a2b_hex("90773b9a9661fee1f406e8989c912b45b029c652224e8b561417672ca7e0fd91")
-#SNonce      = a2b_hex("7b3826876d14ff301aee7c1072b5e9091e21169841bce9ae8a3f24628f264577")
+# ANonce      = a2b_hex("90773b9a9661fee1f406e8989c912b45b029c652224e8b561417672ca7e0fd91")
+# SNonce      = a2b_hex("7b3826876d14ff301aee7c1072b5e9091e21169841bce9ae8a3f24628f264577")
 # This is the MIC contained in the 4th frame of the 4-way handshake
 # When attacking WPA, we would compare it to our own MIC calculated using passphrases from a dictionary
-#mic_to_test = "36eef66540fa801ceee2fea9b7929b40"
+# mic_to_test = "36eef66540fa801ceee2fea9b7929b40"
 
 passPhrase  = "actuelle"
 A           = "Pairwise key expansion" #this string is used in the pseudo-random function
